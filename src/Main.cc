@@ -3,19 +3,35 @@
 #include <map>
 #include <iterator>
 #include <numeric>
+#include <fstream>
 
 #include "Main.h"
-
-std::string test = " 3 3 + 49 - 1 -"; // math test
-std::string test2 = ": mul-by-three 3 * ; 4 mul-by-three"; // word test
 
 std::map<std::string, std::string> wordMap; // symbol table for words
 
 int main(int argc, char **argv){
+    if(argc < 2){
+        std::cerr << "USAGE: benth <filename>";
+        exit(1);
+    }
+
+    std::ifstream file(argv[1]);
+    if(file.fail()){
+        std::cerr << "ERROR: File does not exist\n";
+        exit(1);
+    }
+    std::string temp, fileBuffer;
+
+    getline(file, temp);
+    while(file){
+        fileBuffer += temp;
+        getline(file, temp);
+    }
+    
     wordMap["+"] = "32"; // pre-defined function
     wordMap["-"] = "33"; // pre-defined function
     wordMap["*"] = "34"; // pre-defined function
-    std::vector<std::string> tokens = tokenize(test2);
+    std::vector<std::string> tokens = tokenize(fileBuffer);
 
     compileBenthToBVM(tokens);
     return 0;
@@ -69,7 +85,7 @@ void compileBenthToBVM(std::vector<std::string> program){
                 std::cout << "16," <<
                     program[pc] << ","; // if its an int, just print it.
             }else if(wordMap.count(program[pc]) != 0){ // word exists
-                std::cout << wordMap[program[pc]];
+                std::cout << wordMap[program[pc]] << ",";
             } else {
             std::cerr << "ERROR: Unknown function " << program[pc] << "\n";
             exit(1);
