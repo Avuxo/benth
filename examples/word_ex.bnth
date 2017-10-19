@@ -1,1 +1,4 @@
-: mul-by-three 3 * ; 4 mul-by-three
+: MUL-BY-THREE ( n -- n ) 3 * ; 
+12  MUL-BY-THREE EMIT 
+: PRINT-MEM ( n -- ) LOAD . ; 
+3 65 STORE 3 PRINT-MEM 

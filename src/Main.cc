@@ -11,7 +11,7 @@ std::map<std::string, std::string> wordMap; // symbol table for words
 
 int main(int argc, char **argv){
     if(argc < 2){ // make sure a filename is provided
-        std::cerr << "ERROR: No input file provided."; 
+        std::cerr << "ERROR: No input file provided.\n"; 
         exit(1);
     }
 
@@ -25,10 +25,10 @@ int main(int argc, char **argv){
 
     getline(file, temp);
     while(file){ // loop through the function
-        fileBuffer += temp; // add the temp varible to the full file buffer
+        fileBuffer += " " + temp; // add the temp varible to the full file buffer
         getline(file, temp); // get the next line
     }
-    predefineFunctions();
+    predefineWords();
     
     // convert the given program to a vector of tokens
     std::vector<std::string> tokens = tokenize(fileBuffer);
@@ -59,7 +59,8 @@ bool isInt(std::string str){
     const char *digits = "0123456789"; // list of all digits to loopthrough
     while(*cStringInput){ // loop through the whole string
         for(int i=0; i<10; i++){ // loop through every digit
-            if(*cStringInput == digits[i]){ // if the current char is an integer, return true
+            // if the current char is an integer, return true
+            if(*cStringInput == digits[i]){
                 return true;
             }
         }
@@ -76,24 +77,35 @@ bool isInt(std::string str){
 void compileBenthToBVM(std::vector<std::string> program){
     for(int pc=0; pc<program.size(); pc++){
         // word creation and compilation
-        if(program[pc] == ":") { // mark for compilation
+        if(program[pc] == "("){ // comments
+            while(program[pc] != ")"){
+                pc++;
+            }
+        } else if(program[pc] == ":") { // mark for compilation
             std::string symbol = program[++pc];
             pc++;
             std::string word; // the full word after compilation for the map
+
             while(program[pc] != ";"){ // is it the end of the compiler statement?
-                std::string instruction = compileInstruction(program[pc]);
-                word += instruction + ",";
-                pc++;
+                if(program[pc] == "("){ // comments
+                    while(program[pc] != ")"){ // end of comment
+                        pc++;
+                    }
+                } else {
+                    std::string instruction = compileInstruction(program[pc]);
+                    word += instruction + ",";
+                    pc++;
+                }
             }
             // insert the new word into the wordmap
             wordMap.insert(std::pair<std::string, std::string>(symbol, word)); 
         } else {
             // word lookup
-            if(isInt(program[pc])){ // if it's an integer, just push it.
-                std::cout << "16," <<
-                    program[pc] << ","; 
-            }else if(wordMap.count(program[pc]) != 0){ // if the word exists
+            if(wordMap.count(program[pc]) != 0){ // if the word exists
                 std::cout << wordMap[program[pc]] << ","; // perform a word lookup
+            } else if(isInt(program[pc])) { // check for integer
+                std::cout << "16," <<
+                    program[pc] << ",";
             } else { // word doesn't exist and it's not an integer
                 std::cerr << "ERROR: Unknown function " << program[pc] << "\n";
                 exit(1);
@@ -120,9 +132,17 @@ std::string compileInstruction(std::string instruction){
     return compiledInstruction;
 }
 
-void predefineFunctions(){
-    wordMap["+"] = "32"; // addition
-    wordMap["-"] = "33"; // subtraction
-    wordMap["*"] = "34"; // multiplication
-    wordMap["/"] = "35"; // division
+/*
+  List of predefined handwritten words in the Benth language
+*/
+void predefineWords(){
+    wordMap["+"] = "32"; // ( num1 num2 -- num3 ) add two numbers
+    wordMap["-"] = "33"; // ( num1 num2 -- num3 ) subtract two numbers
+    wordMap["*"] = "34"; // ( num1 num2 -- num3 ) multiply two numbers
+    wordMap["/"] = "35"; // ( num1 num2 -- num3 ) divide two numbers
+    wordMap["EMIT"] = "0x84"; // ( char1 -- ) print an ASCII character
+    wordMap["."] = "0x81, 0x11"; // ( -- ) print the top of the stack (as int)
+    wordMap["STORE"] = "0x60"; // ( address value -- ) store in memory
+    wordMap["LOAD"] = "0x64"; // ( address -- ) take from memory and put on stack
+    wordMap["HALT"] = "0x01"; // ( -- ) halt program execution
 }
